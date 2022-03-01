@@ -124,7 +124,7 @@ let init = async function () {
     for (let i = 1; i <= nodesCount; i++) {
       let httpPort = startRpcPort + i - 1
       let p2pPort = startP2pPort + i - 1
-      let start1 = (windows ? "" : "#!/bin/bash\n nohup ./") + `${geth} --datadir ./node${i} ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ''} console >./node${i}/geth.log 2>&1 &`
+      let start1 = (windows ? "" : "#!/bin/bash\n nohup ./") + `${geth} --datadir ./node${i} ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ''} >./node${i}/geth.log 2>&1 &`
       let start2 = (windows ? "" : "#!/bin/bash\n ./") + `${geth} --datadir ./node${i} ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ''} console`
       let stop = windows ? `@echo off
 for /f "tokens=5" %%i in ('netstat -ano ^| findstr 0.0.0.0:${httpPort}') do set PID=%%i
