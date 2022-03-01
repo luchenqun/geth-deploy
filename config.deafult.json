@@ -1,5 +1,5 @@
 {
-  "commonNode": 1,
+  "commonNode": 0,
   "authorityNode": 1,
   "startRpcPort": 40000,
   "startP2pPort": 30000,
