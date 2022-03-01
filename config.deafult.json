@@ -1,0 +1,37 @@
+{
+  "commonNode": 1,
+  "authorityNode": 1,
+  "startRpcPort": 40000,
+  "startP2pPort": 30000,
+  "cmd": "--ipcdisable --gcmode archive --syncmode full --networkid 1337 --nodiscover --log.debug --verbosity 3 --allow-insecure-unlock --unlock '0' --password ./pwd --ws --ws.addr 0.0.0.0 --ws.api eth,net,web3,personal,admin,miner,txpool,clique,debug,trace --ws.origins '*' --http.api eth,net,web3,personal,admin,miner,txpool,clique,debug,trace --http --http.corsdomain '*' --http.addr 0.0.0.0",
+  "genesis": {
+    "config": {
+      "chainId": 1337,
+      "homesteadBlock": 0,
+      "eip150Block": 0,
+      "eip150Hash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "eip155Block": 0,
+      "eip158Block": 0,
+      "byzantiumBlock": 0,
+      "constantinopleBlock": 0,
+      "petersburgBlock": 0,
+      "istanbulBlock": 0,
+      "clique": {
+        "period": 0,
+        "epoch": 30000
+      }
+    },
+    "nonce": "0x0",
+    "timestamp": "0x612883a3",
+    "extraData": "0x00000000000000000000000000000000000000000000000000000000000000009ae5c0f24355ca814c0c99d7ee9637ec005fae18b3b1a10f515740ecf805c31c5c612935d60ba5eb0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "gasLimit": "0x47b76000000",
+    "difficulty": "0x1",
+    "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "coinbase": "0x0000000000000000000000000000000000000000",
+    "alloc": {},
+    "number": "0x0",
+    "gasUsed": "0x0",
+    "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "baseFeePerGas": null
+  }
+}

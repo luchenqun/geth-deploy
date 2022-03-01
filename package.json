@@ -1,0 +1,25 @@
+{
+  "name": "deploy",
+  "version": "1.0.0",
+  "description": "a javascript for deploy node",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js",
+    "init": "node init.js",
+    "start": "node start.js",
+    "stop": "node stop.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@114.215.177.69:lucq/deploy.git"
+  },
+  "type": "module",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "fs-extra": "^10.0.0",
+    "leveldown": "^6.1.0",
+    "levelup": "^5.1.1",
+    "web3": "^1.5.0"
+  }
+}
