@@ -65,35 +65,46 @@ let init = async function () {
     console.log("文件夹nodes已清理完毕")
 
     let staticNodes = []
-    let nodesCount = config.commonNode + config.authorityNode
-    for (let i = 1; i <= nodesCount; i++) {
+    let keystores = []
+    for (let i = 0; i < privateKeys.length; i++) {
       let account = web3.eth.accounts.create();
-      let privateKey = privateKeys[i - 1] || account.privateKey.substr(2)
+      let privateKey = privateKeys[i] || account.privateKey.substr(2)
       let keystore = web3.eth.accounts.encrypt(privateKey, "");
-
-      let keystoreDir = path.join(dir, `node${i}`, `keystore`);
-      let nodekeyDir = path.join(dir, `node${i}`, `geth`);
-      await fs.ensureDir(keystoreDir)
-      await fs.ensureDir(nodekeyDir)
-      await fs.writeJSON(path.join(keystoreDir, `${keystore.address}.json`), keystore, { spaces: 4 })
-      await fs.writeFile(path.join(nodekeyDir, `nodekey`), privateKey)
+      keystore.privateKey = privateKey
       genesis.alloc[keystore.address] = { balance: "900000000000000000000000000000" }
-      if (i <= config.authorityNode) {
+      keystores.push(keystore)
+    }
+
+    let nodesCount = config.commonNode + config.authorityNode
+    for (let i = 0; i < nodesCount; i++) {
+      let keystore = keystores[i]
+      let privateKey = keystore.privateKey
+      let keystoreDir = path.join(dir, `node${i + 1}`, `keystore`);
+      let nodekeyDir = path.join(dir, `node${i + 1}`, `geth`);
+      await fs.ensureDir(keystoreDir)
+      for (let i = 0; i < privateKeys.length; i++) {
+        await fs.writeJSON(path.join(keystoreDir, `${keystores[i].address}.json`), keystores[i], { spaces: 4 })
+      }
+
+      await fs.ensureDir(nodekeyDir)
+      await fs.writeFile(path.join(nodekeyDir, `nodekey`), keystore.privateKey)
+      if (i < config.authorityNode) {
+        console.log(keystore.address)
         cliqueAddress += keystore.address
       }
 
       let publicKey = privateToPublicKey(privateKey)
-      let port = config.startP2pPort + i - 1
+      let port = config.startP2pPort + i
       let enode = `enode://${publicKey}@127.0.0.1:${port}`
       staticNodes.push(enode)
     }
 
     // 生成static-nodes.json文件
-    for (let i = 1; i <= nodesCount; i++) {
-      let port = config.startP2pPort + i - 1
+    for (let i = 0; i < nodesCount; i++) {
+      let port = config.startP2pPort + i
       let nodes = staticNodes.filter(item => item.indexOf(String(port)) < 0)
       if (nodes.length > 0) {
-        let staticNodesPath = path.join(dir, `node${i}`, `static-nodes.json`)
+        let staticNodesPath = path.join(dir, `node${i + 1}`, `static-nodes.json`)
         await fs.writeJson(staticNodesPath, nodes, { spaces: 4 })
       }
     }
@@ -104,7 +115,6 @@ let init = async function () {
     cliqueAddress = "0x" + "0".repeat(64) + cliqueAddress + "0".repeat(130)
     genesis.extraData = cliqueAddress
 
-
     await fs.writeJson(path.join(dir, "genesis.json"), genesis, { spaces: 4 })
 
     // 创建一个密码文件
@@ -112,10 +122,10 @@ let init = async function () {
     await fs.copy(geth, `./nodes/${geth}`)
 
     // 生成创世块
-    for (let i = 1; i <= nodesCount; i++) {
-      let cmd = (windows ? "" : "./") + `${geth} --datadir ./node${i} init ./genesis.json`
+    for (let i = 0; i < nodesCount; i++) {
+      let cmd = (windows ? "" : "./") + `${geth} --datadir ./node${i + 1} init ./genesis.json`
       const { stdout, stderr } = await exec(cmd, { cwd: dir });
-      console.log(`================Begin init Node${i}================\n${stdout}${stderr}=================End init Node${i}=================\n`);
+      console.log(`================Begin init Node${i + 1}================\n${stdout}${stderr}=================End init Node${i + 1}=================\n`);
     }
 
     // 生成启动命令脚本
@@ -124,8 +134,8 @@ let init = async function () {
     for (let i = 1; i <= nodesCount; i++) {
       let httpPort = startRpcPort + i - 1
       let p2pPort = startP2pPort + i - 1
-      let start1 = (windows ? "" : "#!/bin/bash\n nohup ./") + `${geth} --datadir ./node${i} ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ''} >./node${i}/geth.log 2>&1 &`
-      let start2 = (windows ? "" : "#!/bin/bash\n ./") + `${geth} --datadir ./node${i} ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ''} console`
+      let start1 = (windows ? "" : "#!/bin/bash\n nohup ./") + `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ''} >./node${i}/geth.log 2>&1 &`
+      let start2 = (windows ? "" : "#!/bin/bash\n ./") + `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ''} console`
       let stop = windows ? `@echo off
 for /f "tokens=5" %%i in ('netstat -ano ^| findstr 0.0.0.0:${httpPort}') do set PID=%%i
 taskkill /F /PID %PID%` : `pid=\`netstat -anp|grep :::${httpPort} |awk '{printf $7}'|cut -d/ -f1\`;
