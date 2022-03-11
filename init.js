@@ -149,7 +149,7 @@ kill -15 $pid`
         vbsStop += `ws.Run ".\\stop${i}.bat",0\n`
       } else {
         vbsStart += `./start${i}.sh\n`
-        vbsStop += `./start${i}.sh\n`
+        vbsStop += `./stop${i}.sh\n`
 
         await fs.chmod(startPath, 0o777);
         await fs.chmod(stopPath, 0o777);
