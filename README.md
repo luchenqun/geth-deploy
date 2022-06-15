@@ -14,7 +14,12 @@
 * 在项目目录执行npm install安装依赖。
 * 将你编译好的geth重命名为geth.exe放到项目根目录。
 * config.default.json为蓝本，将内容复制一份到新建的文件config.json里面。你更新一下配置。genesis中extraData与alloc我会进行覆盖。配置文件字段见后续说明。
-* 执行 npm run init 初始化。
+* 执行 node init.js --start true --unlock true 初始化。
+  * nohup 启动脚本是否是nohup，默认 true
+  * console 启动脚本是否是console，默认 false
+  * platform 当前平台(darwin,linux,win32)，默认空，不传通过process.platform获取
+  * start 初始化之后是否立即执行，默认 false
+  * unlock 是否启动之后立即解锁所有账号，默认 false
 * 执行 npm run start 启动所有节点。
 * 执行 npm run stop 停止所有节点。
 

@@ -1,21 +1,69 @@
-import { createRequire } from 'module';
+import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
-const util = require('util');
-const exec = util.promisify(require('child_process').exec);
-const fs = require("fs-extra")
-const path = require("path")
-const Web3 = require('web3');
+const yargs = require('yargs');
+let argv = yargs
+  .option('n', {
+    alias: 'nohup',
+    demandOption: false,
+    default: true,
+    describe: '启动脚本是否是nohup',
+    type: 'bool'
+  })
+  .option('c', {
+    alias: 'console',
+    demandOption: false,
+    default: false,
+    describe: '启动脚本是否是console',
+    type: 'bool'
+  })
+  .option('p', {
+    alias: 'platform',
+    demandOption: false,
+    default: "",
+    describe: '当前平台(darwin,linux,win32)',
+    type: 'string'
+  })
+  .option('s', {
+    alias: 'start',
+    demandOption: false,
+    default: false,
+    describe: '是否初始化立即启动',
+    type: 'bool'
+  })
+  .option('u', {
+    alias: 'unlock',
+    demandOption: false,
+    default: false,
+    describe: '是否启动之后立即解锁所有账号',
+    type: 'bool'
+  })
+  .boolean(['n', 'c', 's', 'u'])
+  .argv;
+
+const isNohup = argv.nohup;
+const isConsole = argv.console;
+const isStart = argv.start;
+const isUnlock = argv.unlock;
+
+const platform = argv.platform ? argv.platform : process.platform
+console.log(argv, platform);
+
+const util = require("util");
+const exec = util.promisify(require("child_process").exec);
+const fs = require("fs-extra");
+const path = require("path");
+const Web3 = require("web3");
 const web3 = new Web3();
-import account from './account.js';
-const { privateToPublicKey } = account
-const cwd = process.cwd()
+import account from "./account.js";
+const { privateToPublicKey } = account;
+const cwd = process.cwd();
 const dir = path.join(cwd, "nodes");
-const windows = process.platform == "win32"
-const geth = windows ? "geth.exe" : "geth"
-const script = path.join(dir, process.platform == "win32" ? "stopAll.vbs" : "stopAll.sh");
-const sleep = time => {
-  return new Promise(resolve => setTimeout(resolve, time));
+const geth = platform == "win32" ? "geth.exe" : "geth";
+const scriptStop = path.join(dir, platform == "win32" ? "stopAll.vbs" : "stopAll.sh");
+const scriptStart = path.join(dir, platform == "win32" ? "startAll.vbs" : "startAll.sh");
+const sleep = (time) => {
+  return new Promise((resolve) => setTimeout(resolve, time));
 };
 
 // 固定一批私钥方便测试
@@ -36,137 +84,160 @@ const privateKeys = [
   "41601b4909dbe65ab4528ebdd691aa1c50d1e26ab8b87154e999b2691af9ad20", // 0xddddd5a2836f327c397f3e119ee77ebd00dd567b
   "03012804714caf41d1fa61c3677699b3dfa08adb9d89075cecd2eb4649669c19", // 0xeeeee5d1d01f99d760f9da356e683cc1f29f2f81
   "b5383875512d64281acfb81cc37a95b0ddc00b235a3aa60cf8b4be25a3ba8fe5", // 0xfffff01adb78f8951aa28cf06ceb9b8898a29f50
-]
+];
 
 let init = async function () {
   try {
     // 读取配置文件
-    let config = await fs.readJson("./config.json")
-    let genesis = config.genesis
+    let config = await fs.readJson("./config.json");
+    let genesis = config.genesis;
     let cliqueAddress = "";
 
-    let startRpcPort = config.startRpcPort
-    let startP2pPort = config.startP2pPort
-    let cmd = config.cmd
+    let startRpcPort = config.startRpcPort;
+    let startP2pPort = config.startP2pPort;
+    let cmd = config.cmd;
 
-    console.log("开始清理文件夹nodes")
-    if (await fs.pathExists(script)) {
-      await exec(script, { cwd: dir }) // 不管怎样先执行一下停止
-      await sleep(300)
+    console.log("开始清理文件夹nodes");
+    if (await fs.pathExists(scriptStop)) {
+      console.log("尝试停止nodes目录下面的geth节点");
+      await exec(scriptStop, { cwd: dir }) // 不管怎样先执行一下停止
+      await sleep(300);
     }
     if (!fs.existsSync(geth)) {
-      console.log("开始重新编译geth...")
-      let make = await exec("go run build/ci.go install ./cmd/geth", { cwd: path.join(cwd, "..", "..") }) // 重新编译
-      console.log("geth编译完毕", make)
+      console.log("开始重新编译geth...");
+      let make = await exec("go run build/ci.go install ./cmd/geth", { cwd: path.join(cwd, "..", "..") }); // 重新编译
+      console.log("geth编译完毕", make);
     }
 
-    await fs.emptyDir(dir)
-    await fs.ensureDir(dir)
-    console.log("文件夹nodes已清理完毕")
+    await fs.emptyDir(dir);
+    await fs.ensureDir(dir);
+    console.log("文件夹nodes已清理完毕");
 
-    let staticNodes = []
-    let keystores = []
+    let staticNodes = [];
+    let keystores = [];
     for (let i = 0; i < privateKeys.length; i++) {
       let account = web3.eth.accounts.create();
-      let privateKey = privateKeys[i] || account.privateKey.substr(2)
+      let privateKey = privateKeys[i] || account.privateKey.substr(2);
       let keystore = web3.eth.accounts.encrypt(privateKey, "");
-      keystore.privateKey = privateKey
-      genesis.alloc[keystore.address] = { balance: "900000000000000000000000000000" }
-      keystores.push(keystore)
+      keystore.privateKey = privateKey;
+      genesis.alloc[keystore.address] = { balance: "900000000000000000000000000000" };
+      keystores.push(keystore);
     }
 
-    let nodesCount = config.commonNode + config.authorityNode
+    let nodesCount = config.commonNode + config.authorityNode;
     for (let i = 0; i < nodesCount; i++) {
-      let keystore = keystores[i]
-      let privateKey = keystore.privateKey
+      let keystore = keystores[i];
+      let privateKey = keystore.privateKey;
       let keystoreDir = path.join(dir, `node${i + 1}`, `keystore`);
       let nodekeyDir = path.join(dir, `node${i + 1}`, `geth`);
-      await fs.ensureDir(keystoreDir)
+      await fs.ensureDir(keystoreDir);
       for (let i = 0; i < privateKeys.length; i++) {
-        await fs.writeJSON(path.join(keystoreDir, `${keystores[i].address}.json`), keystores[i], { spaces: 4 })
+        await fs.writeJSON(path.join(keystoreDir, `${keystores[i].address}.json`), keystores[i], { spaces: 4 });
       }
 
-      await fs.ensureDir(nodekeyDir)
-      await fs.writeFile(path.join(nodekeyDir, `nodekey`), keystore.privateKey)
+      await fs.ensureDir(nodekeyDir);
+      await fs.writeFile(path.join(nodekeyDir, `nodekey`), keystore.privateKey);
       if (i < config.authorityNode) {
-        cliqueAddress += keystore.address
+        cliqueAddress += keystore.address;
       }
 
-      let publicKey = privateToPublicKey(privateKey)
-      let port = config.startP2pPort + i
-      let enode = `enode://${publicKey}@127.0.0.1:${port}`
-      staticNodes.push(enode)
+      let publicKey = privateToPublicKey(privateKey);
+      let port = config.startP2pPort + i;
+      let enode = `enode://${publicKey}@127.0.0.1:${port}`;
+      staticNodes.push(enode);
     }
 
     // 生成static-nodes.json文件
     for (let i = 0; i < nodesCount; i++) {
-      let port = config.startP2pPort + i
-      let nodes = staticNodes.filter(item => item.indexOf(String(port)) < 0)
+      let port = config.startP2pPort + i;
+      let nodes = staticNodes.filter((item) => item.indexOf(String(port)) < 0);
       if (nodes.length > 0) {
-        let staticNodesPath = path.join(dir, `node${i + 1}`, `static-nodes.json`)
-        await fs.writeJson(staticNodesPath, nodes, { spaces: 4 })
+        let staticNodesPath = path.join(dir, `node${i + 1}`, `static-nodes.json`);
+        await fs.writeJson(staticNodesPath, nodes, { spaces: 4 });
       }
     }
 
     // 生成创世块配置文件
     // 设置出块节点
-    genesis.timestamp = web3.utils.numberToHex(parseInt(new Date().getTime() / 1000))
-    cliqueAddress = "0x" + "0".repeat(64) + cliqueAddress + "0".repeat(130)
-    genesis.extraData = cliqueAddress
+    genesis.timestamp = web3.utils.numberToHex(parseInt(new Date().getTime() / 1000));
+    cliqueAddress = "0x" + "0".repeat(64) + cliqueAddress + "0".repeat(130);
+    genesis.extraData = cliqueAddress;
 
-    await fs.writeJson(path.join(dir, "genesis.json"), genesis, { spaces: 4 })
+    await fs.writeJson(path.join(dir, "genesis.json"), genesis, { spaces: 4 });
 
     // 创建一个密码文件
-    await fs.writeFile(path.join(dir, "pwd"), "")
-    await fs.copy(geth, `./nodes/${geth}`)
+    await fs.writeFile(path.join(dir, "pwd"), "");
+    await fs.copy(geth, `./nodes/${geth}`);
 
     // 生成创世块
     for (let i = 0; i < nodesCount; i++) {
-      let cmd = (windows ? "" : "./") + `${geth} --datadir ./node${i + 1} init ./genesis.json`
+      let cmd = (platform == "win32" ? "" : "./") + `${geth} --datadir ./node${i + 1} init ./genesis.json`;
       const { stdout, stderr } = await exec(cmd, { cwd: dir });
       console.log(`================Begin init Node${i + 1}================\n${stdout}${stderr}=================End init Node${i + 1}=================\n`);
     }
 
     // 生成启动命令脚本
-    let vbsStart = windows ? `set ws=WScript.CreateObject("WScript.Shell")\n` : `#!/bin/bash\n`
-    let vbsStop = windows ? `set ws=WScript.CreateObject("WScript.Shell")\n` : `#!/bin/bash\n`
+    let vbsStart = platform == "win32" ? `set ws=WScript.CreateObject("WScript.Shell")\n` : `#!/bin/bash\n`;
+    let vbsStop = platform == "win32" ? `set ws=WScript.CreateObject("WScript.Shell")\n` : `#!/bin/bash\n`;
     for (let i = 1; i <= nodesCount; i++) {
-      let httpPort = startRpcPort + i - 1
-      let p2pPort = startP2pPort + i - 1
-      let start1 = (windows ? "" : "#!/bin/bash\n nohup ./") + `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ''} >./node${i}/geth.log 2>&1 &`
-      let start2 = (windows ? "" : "#!/bin/bash\n ./") + `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ''} console`
-      let stop = windows ? `@echo off
-for /f "tokens=5" %%i in ('netstat -ano ^| findstr 0.0.0.0:${httpPort}') do set PID=%%i
-taskkill /F /PID %PID%` : `pid=\`netstat -anp|grep :::${httpPort} |awk '{printf $7}'|cut -d/ -f1\`;
-kill -15 $pid`
-      let startPath = path.join(dir, `start${i}.` + (windows ? "bat" : "sh"));
-      let stopPath = path.join(dir, `stop${i}.` + (windows ? "bat" : "sh"));
-      await fs.writeFile(startPath, windows ? start2 : start1)
-      await fs.writeFile(stopPath, stop)
+      let httpPort = startRpcPort + i - 1;
+      let p2pPort = startP2pPort + i - 1;
+      let start1 = (platform == "win32" ? "" : "#!/bin/bash\n" + (isNohup ? "nohup " : "") + "./") + `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ""}` + (isConsole ? " console" : "") + (isNohup ? ` >./node${i}/geth.log 2>&1 &` : "");
+      let start2 = (platform == "win32" ? "" : "#!/bin/bash\n./") + `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ""}` + (isConsole ? " console" : "");
+      let stop = platform == "win32"
+        ? `@echo off
+for /f "tokens=5" %%i in ('netstat -ano ^ | findstr 0.0.0.0:${httpPort}') do set PID=%%i
+taskkill /F /PID %PID%`
+        : platform == "linux" ? `pid=\`netstat -anp | grep :::${httpPort} | awk '{printf $7}' | cut -d/ -f1\`;
+kill -15 $pid` :
+          `pid=\`lsof -i :${httpPort} | grep geth | grep LISTEN | awk '{printf $2}'|cut -d/ -f1\`;
+if [ "$pid" != "" ]; then kill -15 $pid; fi`;
+      let startPath = path.join(dir, `start${i}.` + (platform == "win32" ? "bat" : "sh"));
+      let stopPath = path.join(dir, `stop${i}.` + (platform == "win32" ? "bat" : "sh"));
+      await fs.writeFile(startPath, platform == "win32" ? start2 : start1);
+      await fs.writeFile(stopPath, stop);
 
-      if (windows) {
-        vbsStart += `ws.Run ".\\start${i}.bat",0\n`
-        vbsStop += `ws.Run ".\\stop${i}.bat",0\n`
+      if (platform == "win32") {
+        vbsStart += `ws.Run ".\\start${i}.bat",0\n`;
+        vbsStop += `ws.Run ".\\stop${i}.bat",0\n`;
       } else {
-        vbsStart += `./start${i}.sh\n`
-        vbsStop += `./stop${i}.sh\n`
+        vbsStart += `./start${i}.sh\n`;
+        vbsStop += `./stop${i}.sh\n`;
 
         await fs.chmod(startPath, 0o777);
         await fs.chmod(stopPath, 0o777);
       }
     }
     // 生成总的启动脚本
-    let startAllPath = path.join(dir, `startAll.` + (windows ? "vbs" : "sh"));
-    let stopAllPath = path.join(dir, `stopAll.` + (windows ? "vbs" : "sh"));
-    await fs.writeFile(startAllPath, vbsStart)
-    await fs.writeFile(stopAllPath, vbsStop)
-    if (!windows) {
+    let startAllPath = path.join(dir, `startAll.` + (platform == "win32" ? "vbs" : "sh"));
+    let stopAllPath = path.join(dir, `stopAll.` + (platform == "win32" ? "vbs" : "sh"));
+    await fs.writeFile(startAllPath, vbsStart);
+    await fs.writeFile(stopAllPath, vbsStop);
+    if (!(platform == "win32")) {
       await fs.chmod(startAllPath, 0o777);
       await fs.chmod(stopAllPath, 0o777);
     }
-  } catch (error) {
-    console.log("error", error)
-  }
-}
 
-init()
+    if (isStart) {
+      console.log("启动文件夹nodes下面所有节点");
+      await exec(scriptStart, { cwd: dir }) // 不管怎样先执行一下停止
+    }
+
+    if (isStart && isUnlock) {
+      console.log("解锁文件夹nodes下面所有节点账户");
+      await sleep(300)
+      for (let index = 0; index < nodesCount; index++) {
+        const url = `http://127.0.0.1:${startRpcPort + index}`
+        let web3 = new Web3(url);
+        let accounts = await web3.eth.getAccounts()
+        for (const address of accounts) {
+          web3.eth.personal.unlockAccount(address, "", 24 * 3600)
+        }
+      }
+    }
+  } catch (error) {
+    console.log("error", error);
+  }
+};
+
+init();
