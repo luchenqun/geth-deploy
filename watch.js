@@ -6,9 +6,9 @@ const Web3 = require("web3");
 let simple = async function () {
   try {
     let config = await fs.readJson("./config.json")
-    let nodesCount = config.pow + config.dpos
+    let nodesCount = config.commonNode + config.authorityNode
     for (let index = 0; index < nodesCount; index++) {
-      const url = `http://127.0.0.1:${config.startHttpPort + index}`
+      const url = `http://127.0.0.1:${config.startRpcPort + index}`
       let web3 = new Web3(url);
       let accounts = await web3.eth.getAccounts()
       if (accounts.lenght == 0) {
@@ -31,7 +31,7 @@ let simple = async function () {
     let maxBlockNumber = -1
     let numbers = []
     for (let index = 0; index < nodesCount; index++) {
-      const url = `http://127.0.0.1:${config.startHttpPort + index}`
+      const url = `http://127.0.0.1:${config.startRpcPort + index}`
       let web3 = new Web3(url);
       let blockNumber = await web3.eth.getBlockNumber()
       numbers.push(blockNumber)
