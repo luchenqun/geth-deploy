@@ -15,8 +15,7 @@ let unlock = async function () {
         console.log("keystore 下面没有账号")
       }
       for (const address of accounts) {
-        let ret = await web3.eth.personal.unlockAccount(address, "", 24 * 3600)
-        console.log(url, address, ret)
+        web3.eth.personal.unlockAccount(address, "", 24 * 3600)
       }
     }
   } catch (error) {
