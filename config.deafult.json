@@ -3,7 +3,7 @@
   "authorityNode": 1,
   "startRpcPort": 8545,
   "startP2pPort": 30030,
-  "cmd": "--ipcdisable --gcmode archive --syncmode full --networkid 1337 --nodiscover --log.debug --verbosity 3 --allow-insecure-unlock --ws --ws.addr 0.0.0.0 --ws.api eth,net,web3,personal,admin,miner,txpool,clique,debug,trace --ws.origins \"*\" --http.api eth,net,web3,personal,admin,miner,txpool,clique,debug --http --http.corsdomain \"*\" --http.addr 0.0.0.0",
+  "cmd": "--ipcdisable --gcmode archive --syncmode full --networkid 1337 --nodiscover --miner.gasprice 1 --log.debug --verbosity 3 --allow-insecure-unlock --ws --ws.addr 0.0.0.0 --ws.api eth,net,web3,personal,admin,miner,txpool,clique,debug,trace --ws.origins \"*\" --http.api eth,net,web3,personal,admin,miner,txpool,clique,debug --http --http.corsdomain \"*\" --http.addr 0.0.0.0",
   "genesis": {
     "config": {
       "chainId": 1337,

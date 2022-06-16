@@ -12,4 +12,4 @@ pwd
 temp/
 data/
 *.exe
-geth
+geth*
