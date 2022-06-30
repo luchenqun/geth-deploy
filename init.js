@@ -38,13 +38,21 @@ let argv = yargs
     describe: '是否启动之后立即解锁所有账号',
     type: 'bool'
   })
-  .boolean(['n', 'c', 's', 'u'])
+  .option('m', {
+    alias: 'mine',
+    demandOption: false,
+    default: false,
+    describe: '是否启动之后开启挖矿',
+    type: 'bool'
+  })
+  .boolean(['n', 'c', 's', 'u', 'm'])
   .argv;
 
 const isNohup = argv.nohup;
 const isConsole = argv.console;
 const isStart = argv.start;
 const isUnlock = argv.unlock;
+const isMine = argv.mine;
 
 const platform = argv.platform ? argv.platform : process.platform
 console.log(argv, platform);
@@ -182,8 +190,8 @@ let init = async function () {
     for (let i = 1; i <= nodesCount; i++) {
       let httpPort = startRpcPort + i - 1;
       let p2pPort = startP2pPort + i - 1;
-      let start1 = (platform == "win32" ? "" : "#!/bin/bash\n" + (isNohup ? "nohup " : "") + "./") + `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ""}` + (isConsole ? " console" : "") + (isNohup ? ` >./node${i}/geth.log 2>&1 &` : "");
-      let start2 = (platform == "win32" ? "" : "#!/bin/bash\n./") + `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode ? `--mine --miner.threads 1` : ""}` + (isConsole ? " console" : "");
+      let start1 = (platform == "win32" ? "" : "#!/bin/bash\n" + (isNohup ? "nohup " : "") + "./") + `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode || isMine ? `--mine --miner.threads 1` : ""}` + (isConsole ? " console" : "") + (isNohup ? ` >./node${i}/geth.log 2>&1 &` : "");
+      let start2 = (platform == "win32" ? "" : "#!/bin/bash\n./") + `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode || isMine ? `--mine --miner.threads 1` : ""}` + (isConsole ? " console" : "");
       let stop = platform == "win32"
         ? `@echo off
 for /f "tokens=5" %%i in ('netstat -ano ^ | findstr 0.0.0.0:${httpPort}') do set PID=%%i
