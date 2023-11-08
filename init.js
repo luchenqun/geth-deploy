@@ -155,14 +155,14 @@ let init = async function () {
     }
 
     // 生成static-nodes.json文件
-    // for (let i = 0; i < nodesCount; i++) {
-    //   let port = config.startP2pPort + i;
-    //   let nodes = staticNodes.filter((item) => item.indexOf(String(port)) < 0);
-    //   if (nodes.length > 0) {
-    //     let staticNodesPath = path.join(dir, `node${i + 1}`, `static-nodes.json`);
-    //     await fs.writeJson(staticNodesPath, nodes, { spaces: 4 });
-    //   }
-    // }
+    for (let i = 0; i < nodesCount; i++) {
+      let port = config.startP2pPort + i;
+      let nodes = staticNodes.filter((item) => item.indexOf(String(port)) < 0);
+      if (nodes.length > 0) {
+        let staticNodesPath = path.join(dir, `node${i + 1}`, `static-nodes.json`);
+        await fs.writeJson(staticNodesPath, nodes, { spaces: 4 });
+      }
+    }
 
     // 生成创世块配置文件
     // 设置出块节点
@@ -193,12 +193,12 @@ let init = async function () {
       let nodes = staticNodes.filter((item) => item.indexOf(String(p2pPort)) < 0);
       let start1 =
         (platform == "win32" ? "" : "#!/bin/bash\n" + (isNohup ? "nohup " : "") + "./") +
-        `${geth} --datadir ./node${i} --bootnodes ${nodes.join(",")}  --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} --authrpc.port ${authPort} ${i <= config.authorityNode || isMine ? `--mine` : ""}` +
+        `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} --authrpc.port ${authPort} ${i <= config.authorityNode || isMine ? `--mine` : ""}` +
         (isConsole ? " console" : "") +
-        (isNohup ? ` >./node${i}/geth.log 2>&1 &` : "");
+        (isNohup ? ` >./geth${i}.log 2>&1 &` : "");
       let start2 =
         (platform == "win32" ? "" : "#!/bin/bash\n./") +
-        `${geth} --datadir ./node${i} --bootnodes ${nodes.join(",")} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} --authrpc.port ${authPort} ${i <= config.authorityNode || isMine ? `--mine` : ""}` +
+        `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} --authrpc.port ${authPort} ${i <= config.authorityNode || isMine ? `--mine` : ""}` +
         (isConsole ? " console" : "");
       let stop =
         platform == "win32"
