@@ -1,52 +1,51 @@
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 
-const yargs = require('yargs');
+const yargs = require("yargs");
 let argv = yargs
-  .option('n', {
-    alias: 'nohup',
+  .option("n", {
+    alias: "nohup",
     demandOption: false,
     default: true,
-    describe: '启动脚本是否是nohup',
-    type: 'bool'
+    describe: "启动脚本是否是nohup",
+    type: "bool",
   })
-  .option('c', {
-    alias: 'console',
+  .option("c", {
+    alias: "console",
     demandOption: false,
     default: false,
-    describe: '启动脚本是否是console',
-    type: 'bool'
+    describe: "启动脚本是否是console",
+    type: "bool",
   })
-  .option('p', {
-    alias: 'platform',
+  .option("p", {
+    alias: "platform",
     demandOption: false,
     default: "",
-    describe: '当前平台(darwin,linux,win32)',
-    type: 'string'
+    describe: "当前平台(darwin,linux,win32)",
+    type: "string",
   })
-  .option('s', {
-    alias: 'start',
+  .option("s", {
+    alias: "start",
     demandOption: false,
     default: false,
-    describe: '是否初始化立即启动',
-    type: 'bool'
+    describe: "是否初始化立即启动",
+    type: "bool",
   })
-  .option('u', {
-    alias: 'unlock',
+  .option("u", {
+    alias: "unlock",
     demandOption: false,
     default: false,
-    describe: '是否启动之后立即解锁所有账号',
-    type: 'bool'
+    describe: "是否启动之后立即解锁所有账号",
+    type: "bool",
   })
-  .option('m', {
-    alias: 'mine',
+  .option("m", {
+    alias: "mine",
     demandOption: false,
     default: false,
-    describe: '是否启动之后开启挖矿',
-    type: 'bool'
+    describe: "是否启动之后开启挖矿",
+    type: "bool",
   })
-  .boolean(['n', 'c', 's', 'u', 'm'])
-  .argv;
+  .boolean(["n", "c", "s", "u", "m"]).argv;
 
 const isNohup = argv.nohup;
 const isConsole = argv.console;
@@ -54,7 +53,7 @@ const isStart = argv.start;
 const isUnlock = argv.unlock;
 const isMine = argv.mine;
 
-const platform = argv.platform ? argv.platform : process.platform
+const platform = argv.platform ? argv.platform : process.platform;
 console.log(argv, platform);
 
 const util = require("util");
@@ -108,7 +107,7 @@ let init = async function () {
     console.log("开始清理文件夹nodes");
     if (await fs.pathExists(scriptStop)) {
       console.log("尝试停止nodes目录下面的geth节点");
-      await exec(scriptStop, { cwd: dir }) // 不管怎样先执行一下停止
+      await exec(scriptStop, { cwd: dir }); // 不管怎样先执行一下停止
       await sleep(300);
     }
     if (!fs.existsSync(geth)) {
@@ -156,14 +155,14 @@ let init = async function () {
     }
 
     // 生成static-nodes.json文件
-    for (let i = 0; i < nodesCount; i++) {
-      let port = config.startP2pPort + i;
-      let nodes = staticNodes.filter((item) => item.indexOf(String(port)) < 0);
-      if (nodes.length > 0) {
-        let staticNodesPath = path.join(dir, `node${i + 1}`, `static-nodes.json`);
-        await fs.writeJson(staticNodesPath, nodes, { spaces: 4 });
-      }
-    }
+    // for (let i = 0; i < nodesCount; i++) {
+    //   let port = config.startP2pPort + i;
+    //   let nodes = staticNodes.filter((item) => item.indexOf(String(port)) < 0);
+    //   if (nodes.length > 0) {
+    //     let staticNodesPath = path.join(dir, `node${i + 1}`, `static-nodes.json`);
+    //     await fs.writeJson(staticNodesPath, nodes, { spaces: 4 });
+    //   }
+    // }
 
     // 生成创世块配置文件
     // 设置出块节点
@@ -190,15 +189,26 @@ let init = async function () {
     for (let i = 1; i <= nodesCount; i++) {
       let httpPort = startRpcPort + i - 1;
       let p2pPort = startP2pPort + i - 1;
-      let start1 = (platform == "win32" ? "" : "#!/bin/bash\n" + (isNohup ? "nohup " : "") + "./") + `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode || isMine ? `--mine --miner.threads 1` : ""}` + (isConsole ? " console" : "") + (isNohup ? ` >./node${i}/geth.log 2>&1 &` : "");
-      let start2 = (platform == "win32" ? "" : "#!/bin/bash\n./") + `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} ${i <= config.authorityNode || isMine ? `--mine --miner.threads 1` : ""}` + (isConsole ? " console" : "");
-      let stop = platform == "win32"
-        ? `@echo off
+      let authPort = 8551 + i - 1;
+      let nodes = staticNodes.filter((item) => item.indexOf(String(p2pPort)) < 0);
+      let start1 =
+        (platform == "win32" ? "" : "#!/bin/bash\n" + (isNohup ? "nohup " : "") + "./") +
+        `${geth} --datadir ./node${i} --bootnodes ${nodes.join(",")}  --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} --authrpc.port ${authPort} ${i <= config.authorityNode || isMine ? `--mine` : ""}` +
+        (isConsole ? " console" : "") +
+        (isNohup ? ` >./node${i}/geth.log 2>&1 &` : "");
+      let start2 =
+        (platform == "win32" ? "" : "#!/bin/bash\n./") +
+        `${geth} --datadir ./node${i} --bootnodes ${nodes.join(",")} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} --authrpc.port ${authPort} ${i <= config.authorityNode || isMine ? `--mine` : ""}` +
+        (isConsole ? " console" : "");
+      let stop =
+        platform == "win32"
+          ? `@echo off
 for /f "tokens=5" %%i in ('netstat -ano ^ | findstr 0.0.0.0:${httpPort}') do set PID=%%i
 taskkill /F /PID %PID%`
-        : platform == "linux" ? `pid=\`netstat -anp | grep :::${httpPort} | awk '{printf $7}' | cut -d/ -f1\`;
-kill -15 $pid` :
-          `pid=\`lsof -i :${httpPort} | grep geth | grep LISTEN | awk '{printf $2}'|cut -d/ -f1\`;
+          : platform == "linux"
+          ? `pid=\`netstat -anp | grep :::${httpPort} | awk '{printf $7}' | cut -d/ -f1\`;
+kill -15 $pid`
+          : `pid=\`lsof -i :${httpPort} | grep geth | grep LISTEN | awk '{printf $2}'|cut -d/ -f1\`;
 if [ "$pid" != "" ]; then kill -15 $pid; fi`;
       let startPath = path.join(dir, `start${i}.` + (platform == "win32" ? "bat" : "sh"));
       let stopPath = path.join(dir, `stop${i}.` + (platform == "win32" ? "bat" : "sh"));
@@ -228,20 +238,20 @@ if [ "$pid" != "" ]; then kill -15 $pid; fi`;
 
     if (isStart) {
       console.log("启动文件夹nodes下面所有节点");
-      await exec(scriptStart, { cwd: dir }) // 不管怎样先执行一下停止
+      await exec(scriptStart, { cwd: dir }); // 不管怎样先执行一下停止
     }
 
     if (isStart && isUnlock) {
       console.log("解锁文件夹nodes下面所有节点账户");
-      await sleep(300)
-      for (let index = 0; index < nodesCount; index++) {
-        const url = `http://127.0.0.1:${startRpcPort + index}`
-        let web3 = new Web3(url);
-        let accounts = await web3.eth.getAccounts()
-        for (const address of accounts) {
-          web3.eth.personal.unlockAccount(address, "", 24 * 3600)
-        }
-      }
+      // await sleep(300);
+      // for (let index = 0; index < nodesCount; index++) {
+      //   const url = `http://127.0.0.1:${startRpcPort + index}`;
+      //   let web3 = new Web3(url);
+      //   let accounts = await web3.eth.getAccounts();
+      //   for (const address of accounts) {
+      //     web3.eth.personal.unlockAccount(address, "", 24 * 3600);
+      //   }
+      // }
     }
   } catch (error) {
     console.log("error", error);
