@@ -61,6 +61,7 @@ const exec = util.promisify(require("child_process").exec);
 const fs = require("fs-extra");
 const path = require("path");
 const Web3 = require("web3");
+import { parse, stringify } from "smol-toml";
 const web3 = new Web3();
 import account from "./account.js";
 const { privateToPublicKey } = account;
@@ -99,10 +100,13 @@ let init = async function () {
     let config = await fs.readJson("./config.json");
     let genesis = config.genesis;
     let cliqueAddress = "";
-
-    let startRpcPort = config.startRpcPort;
-    let startP2pPort = config.startP2pPort;
     let cmd = config.cmd;
+    let toml = config.toml;
+
+    let startRpcPort = toml.Node.HTTPPort;
+    let startWSPort = toml.Node.WSPort;
+    let startP2pPort = toml.Node.P2P.ListenAddr;
+    let startAuthPort = toml.Node.AuthPort;
 
     console.log("开始清理文件夹nodes");
     if (await fs.pathExists(scriptStop)) {
@@ -149,19 +153,24 @@ let init = async function () {
       }
 
       let publicKey = privateToPublicKey(privateKey);
-      let port = config.startP2pPort + i;
+      let port = startP2pPort + i;
       let enode = `enode://${publicKey}@127.0.0.1:${port}`;
       staticNodes.push(enode);
     }
 
-    // 生成static-nodes.json文件
+    // 生成config.toml文件
     for (let i = 0; i < nodesCount; i++) {
-      let port = config.startP2pPort + i;
-      let nodes = staticNodes.filter((item) => item.indexOf(String(port)) < 0);
+      let cfg = JSON.parse(JSON.stringify(toml));
+      cfg.Node.DataDir = cfg.Node.DataDir + (i + 1);
+      cfg.Node.HTTPPort = startRpcPort + i;
+      cfg.Node.WSPort = startWSPort + i;
+      cfg.Node.AuthPort = startAuthPort + i;
+      cfg.Node.P2P.ListenAddr = ":" + (startP2pPort + i);
+      let nodes = staticNodes.filter((item) => item.indexOf(String(startP2pPort)) < 0);
       if (nodes.length > 0) {
-        let staticNodesPath = path.join(dir, `node${i + 1}`, `static-nodes.json`);
-        await fs.writeJson(staticNodesPath, nodes, { spaces: 4 });
+        cfg.Node.P2P.StaticNodes = nodes;
       }
+      await fs.writeFile(path.join(dir, `config${i + 1}.toml`), stringify(cfg));
     }
 
     // 生成创世块配置文件
@@ -188,18 +197,12 @@ let init = async function () {
     let vbsStop = platform == "win32" ? `set ws=WScript.CreateObject("WScript.Shell")\n` : `#!/bin/bash\n`;
     for (let i = 1; i <= nodesCount; i++) {
       let httpPort = startRpcPort + i - 1;
-      let p2pPort = startP2pPort + i - 1;
-      let authPort = 8551 + i - 1;
-      let nodes = staticNodes.filter((item) => item.indexOf(String(p2pPort)) < 0);
       let start1 =
         (platform == "win32" ? "" : "#!/bin/bash\n" + (isNohup ? "nohup " : "") + "./") +
-        `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} --authrpc.port ${authPort} ${i <= config.authorityNode || isMine ? `--mine` : ""}` +
+        `${geth} --datadir ./node${i} --config ./config${i}.toml --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} ${i <= config.authorityNode || isMine ? `--mine` : ""}` +
         (isConsole ? " console" : "") +
         (isNohup ? ` >./geth${i}.log 2>&1 &` : "");
-      let start2 =
-        (platform == "win32" ? "" : "#!/bin/bash\n./") +
-        `${geth} --datadir ./node${i} --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} --ws.port ${httpPort} --http.port ${httpPort} --port ${p2pPort} --authrpc.port ${authPort} ${i <= config.authorityNode || isMine ? `--mine` : ""}` +
-        (isConsole ? " console" : "");
+      let start2 = (platform == "win32" ? "" : "#!/bin/bash\n./") + `${geth} --datadir ./node${i} --config ./config${i}.toml --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} ${i <= config.authorityNode || isMine ? `--mine` : ""}` + (isConsole ? " console" : "");
       let stop =
         platform == "win32"
           ? `@echo off
