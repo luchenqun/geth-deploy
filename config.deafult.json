@@ -1,5 +1,5 @@
 {
-  "cmd": "--ipcdisable --gcmode archive --miner.gasprice 0 --log.debug --verbosity 3 --allow-insecure-unlock --http --http.corsdomain \"*\" --http.addr 0.0.0.0",
+  "cmd": "--ipcdisable --gcmode archive --miner.gasprice 0 --log.debug --verbosity 3 --allow-insecure-unlock --http.corsdomain \"*\" --ws.origins \"*\"",
   "privateKeys": [
     "f78a036930ce63791ea6ea20072986d8c3f16a6811f6a2583b0787c45086f769",
     "95e06fa1a8411d7f6693f486f0f450b122c58feadbcee43fbd02e13da59395d5",
@@ -124,7 +124,7 @@
         "miner",
         "txpool",
         "debug",
-        "trace"
+        "rpc"
       ],
       "AuthAddr": "localhost",
       "AuthPort": 8551,
@@ -142,7 +142,7 @@
         "miner",
         "txpool",
         "debug",
-        "trace"
+        "rpc"
       ],
       "GraphQLVirtualHosts": [
         "*"
