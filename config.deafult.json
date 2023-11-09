@@ -1,7 +1,23 @@
 {
-  "commonNode": 0,
-  "authorityNode": 4,
-  "cmd": "--ipcdisable --gcmode archive --miner.gasprice 1 --log.debug --verbosity 3 --allow-insecure-unlock --http --http.corsdomain \"*\" --http.addr 0.0.0.0",
+  "cmd": "--ipcdisable --gcmode archive --miner.gasprice 0 --log.debug --verbosity 3 --allow-insecure-unlock --http --http.corsdomain \"*\" --http.addr 0.0.0.0",
+  "privateKeys": [
+    "f78a036930ce63791ea6ea20072986d8c3f16a6811f6a2583b0787c45086f769",
+    "95e06fa1a8411d7f6693f486f0f450b122c58feadbcee43fbd02e13da59395d5",
+    "322673135bc119c82300450aed4f29373c06926f02a03f15d31cac3db1ee7716",
+    "09100ba7616fcd062a5e507ead94c0269ab32f1a46fe0ec80056188976020f71",
+    "5352cfb603f3755c71250f24aa1291e85dbc73a01e9c91e7568cd081b0be04db",
+    "f3d9247d078302fd876462e2036e05a35af8ca6124ba1a8fd82fc3ae89b2959d",
+    "39cfe0662cdede90094bf079b339e09e316b1cfe02e92d56a4d6d95586378e38",
+    "a78e6fe4fe2c66a594fdd639b39bd0064d7cefbbebf43b57de153392b0f4e30c",
+    "7df4c6f61a6b83b3f8e0eb299033d016e077a51162427c1786c53a18cc3b5bd1",
+    "75e4125b9c2bb9f203c637d9f4312471b741b6ac15760e36c18e437a035272d2",
+    "0605636f02e29f93405e71c6923480d1c25cba3d0b102032947593b06c541c82",
+    "318dedc70c1bf4942c0e4a885f2f059833912db4bc145216f23fceb492eff9d3",
+    "0c27877900e26e16061d04730addcd2aa5dbcb7e1e1721a5f9d7300a3beece3d",
+    "41601b4909dbe65ab4528ebdd691aa1c50d1e26ab8b87154e999b2691af9ad20",
+    "03012804714caf41d1fa61c3677699b3dfa08adb9d89075cecd2eb4649669c19",
+    "b5383875512d64281acfb81cc37a95b0ddc00b235a3aa60cf8b4be25a3ba8fe5"
+  ],
   "genesis": {
     "config": {
       "chainId": 1337,
@@ -32,7 +48,7 @@
     "number": "0x0",
     "gasUsed": "0x0",
     "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-    "baseFeePerGas": null
+    "baseFeePerGas": 0
   },
   "toml": {
     "Eth": {
