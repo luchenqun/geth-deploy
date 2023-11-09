@@ -20,13 +20,6 @@ let argv = yargs
     describe: "启动脚本是否是console",
     type: "bool",
   })
-  .option("p", {
-    alias: "platform",
-    demandOption: false,
-    default: "",
-    describe: "当前平台(darwin,linux,win32)",
-    type: "string",
-  })
   .option("s", {
     alias: "start",
     demandOption: false,
@@ -89,7 +82,7 @@ const sleep = (time) => {
   return new Promise((resolve) => setTimeout(resolve, time));
 };
 
-console.log(JSON.stringify(argv), platform);
+console.log(JSON.stringify(argv));
 
 let init = async function () {
   try {
@@ -98,13 +91,18 @@ let init = async function () {
     let genesis = config.genesis;
     let cliqueAddress = "";
     let cmd = config.cmd;
-    let toml = config.toml;
-    const privateKeys = config.privateKeys;
 
-    let startRpcPort = toml.Node.HTTPPort;
-    let startWSPort = toml.Node.WSPort;
-    let startP2pPort = toml.Node.P2P.ListenAddr;
-    let startAuthPort = toml.Node.AuthPort;
+    const toml = config.toml;
+    const privateKeys = config.privateKeys;
+    const nodesCount = commonNode + validators;
+    const startRpcPort = toml.Node.HTTPPort;
+    const startWSPort = toml.Node.WSPort;
+    const startP2pPort = toml.Node.P2P.ListenAddr;
+    const startAuthPort = toml.Node.AuthPort;
+
+    if (privateKeys.length < nodesCount) {
+      throw "配置文件里面的私钥个数必须大于节点个数";
+    }
 
     console.log("开始清理文件夹nodes");
     if (await fs.pathExists(scriptStop)) {
@@ -133,7 +131,6 @@ let init = async function () {
       keystores.push(keystore);
     }
 
-    let nodesCount = commonNode + validators;
     for (let i = 0; i < nodesCount; i++) {
       let keystore = keystores[i];
       let privateKey = keystore.privateKey;
@@ -184,11 +181,15 @@ let init = async function () {
     await fs.copy(geth, `./nodes/${geth}`);
 
     // 生成创世块
+    let psInits = [];
     for (let i = 0; i < nodesCount; i++) {
       let cmd = (platform == "win32" ? "" : "./") + `${geth} --datadir ./node${i + 1} init ./genesis.json`;
-      const { stdout, stderr } = await exec(cmd, { cwd: dir });
-      console.log(`================Begin init Node${i + 1}================\n${stdout}${stderr}=================End init Node${i + 1}=================\n`);
+      psInits.push(exec(cmd, { cwd: dir }));
+      // const { stdout, stderr } = await exec(cmd, { cwd: dir });
+      // console.log(`================Begin init Node${i + 1}================\n${stdout}${stderr}=================End init Node${i + 1}=================\n`);
     }
+    await Promise.all(psInits);
+    console.log("所有节点初始化完毕");
 
     // 生成启动命令脚本
     let vbsStart = platform == "win32" ? `set ws=WScript.CreateObject("WScript.Shell")\n` : `#!/bin/bash\n`;
@@ -218,7 +219,7 @@ let init = async function () {
         vbsStart += `./start${i}.sh\n`;
         vbsStop += `./stop${i}.sh\n`;
         if (i == 1) {
-          vbsStart += "sleep 0.1\n"; // 这里休眠0.1s是等待p2p端口打开并初始化，否则节点可能没有互连
+          vbsStart += "sleep 1\n"; // 这里休眠1s是等待p2p端口打开并初始化，否则节点可能没有互连
         }
 
         await fs.chmod(startPath, 0o777);
