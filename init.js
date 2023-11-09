@@ -61,7 +61,7 @@ const exec = util.promisify(require("child_process").exec);
 const fs = require("fs-extra");
 const path = require("path");
 const Web3 = require("web3");
-import { parse, stringify } from "smol-toml";
+import { stringify } from "smol-toml";
 const web3 = new Web3();
 import account from "./account.js";
 const { privateToPublicKey } = account;
@@ -166,7 +166,7 @@ let init = async function () {
       cfg.Node.WSPort = startWSPort + i;
       cfg.Node.AuthPort = startAuthPort + i;
       cfg.Node.P2P.ListenAddr = ":" + (startP2pPort + i);
-      let nodes = staticNodes.filter((item) => item.indexOf(String(startP2pPort)) < 0);
+      let nodes = staticNodes.filter((item) => item.indexOf(String(startP2pPort + i)) < 0);
       if (nodes.length > 0) {
         cfg.Node.P2P.StaticNodes = nodes;
       }
@@ -221,9 +221,15 @@ if [ "$pid" != "" ]; then kill -15 $pid; fi`;
       if (platform == "win32") {
         vbsStart += `ws.Run ".\\start${i}.bat",0\n`;
         vbsStop += `ws.Run ".\\stop${i}.bat",0\n`;
+        if (i == 1) {
+          vbsStart += "timeout /t 1 >nul\n";
+        }
       } else {
         vbsStart += `./start${i}.sh\n`;
         vbsStop += `./stop${i}.sh\n`;
+        if (i == 1) {
+          vbsStart += "sleep 0.1\n"; // 这里休眠0.1s是等待p2p端口打开并初始化，否则节点可能没有互连
+        }
 
         await fs.chmod(startPath, 0o777);
         await fs.chmod(stopPath, 0o777);
