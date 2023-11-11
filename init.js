@@ -200,7 +200,7 @@ let init = async function () {
       if (platform == "win32") start = `${geth} --datadir ./node${i} --config ./config${i}.toml --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} ${i <= validators && isMine ? `--mine` : ""}` + (isConsole ? " console" : "");
       else start = "#!/bin/bash\n" + (isNohup ? "nohup " : "") + "./" + `${geth} --datadir ./node${i} --config ./config${i}.toml --unlock ${keystores[i - 1].address} --miner.etherbase ${keystores[i - 1].address} --password ./pwd ${cmd} ${i <= validators && isMine ? `--mine` : ""}` + (isConsole ? " console" : "") + (isNohup ? ` >./geth${i}.log 2>&1 &` : "");
 
-      if (platform == "linux") stop = `pid=\`netstat -anp | grep :::${httpPort} | awk '{printf $7}' | cut -d/ -f1\`;\nkill -15 $pid`;
+      if (platform == "linux") stop = `pid=\`netstat -anp | grep :::${httpPort} | awk '{printf $7}' | cut -d/ -f1\`;\nif [ "$pid" != "" ]; then kill -15 $pid; fi`;
       if (platform == "win32") stop = `@echo off\nfor /f "tokens=5" %%i in ('netstat -ano ^ | findstr 0.0.0.0:${httpPort}') do set PID=%%i\ntaskkill /F /PID %PID%`;
       if (platform == "darwin") stop = `pid=\`lsof -i :${httpPort} | grep geth | grep LISTEN | awk '{printf $2}'|cut -d/ -f1\`;\nif [ "$pid" != "" ]; then kill -15 $pid; fi`;
 
